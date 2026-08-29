@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>주는교회 40주년</title>
+    <style>
+        /* 기본 리셋 */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* body를 뷰포트 전체로 잡고, 컨테이너를 중앙 정렬 */
+        body, html {
+            width: 100%;
+            height: 100%;
+            font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+            background-color: #000000; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden; 
+        }
+
+        /* 4. 9:16 비율이 적용된 배경 및 메인 컨테이너 */
+        .background-container {
+            aspect-ratio: 9 / 16;
+            height: 100%; 
+            max-height: 100vh; 
+            background-image: url('https://drive.google.com/thumbnail?id=1pmtB2TltiAqkit3Y_-qg0lCX4Ln_UXps&sz=w1920'); 
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden; 
+        }
+
+        /* 3 & 4. 텍스트 송출 공간 */
+        .text-display-area {
+            position: absolute;
+            top: 45%; 
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            text-align: center;
+            opacity: 1;
+            transition: opacity 0.5s ease-in-out; 
+        }
+        
+        .display-text {
+            font-size: 3rem; 
+            color: #ffffff;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); 
+            white-space: nowrap;
+        }
+
+        .cursor {
+            font-size: 3rem;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 300;
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        /* 1 & 2. 하단 입력 섹션 */
+        .input-section {
+            position: absolute;
+            bottom: 5%; 
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            background: rgba(255, 255, 255, 0.15); 
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .input-label {
+            color: #ffffff;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .input-group {
+            display: flex;
+            width: 100%;
+        }
+
+        .text-input {
+            width: 100%;
+            padding: 10px 15px;
+            font-size: 1rem;
+            color: #ffffff;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 5px;
+            outline: none;
+            text-align: center; /* 가운데 정렬 추가 */
+        }
+        
+        .text-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        @media (max-aspect-ratio: 9/16) {
+            .background-container {
+                width: 100%;
+                height: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="background-container">
+        <!-- 텍스트 송출부 -->
+        <div class="text-display-area" id="displayArea">
+            <span class="display-text" id="displayText"></span>
+            <span class="cursor" id="cursor">|</span>
+        </div>
+
+        <!-- 하단 입력부 -->
+        <div class="input-section">
+            <label class="input-label" for="wordInput" style="text-align: center;">입력 (8자 제한)</label>
+            <div class="input-group">
+                <!-- autofocus 속성으로 페이지 로딩 시 자동 포커스 -->
+                <input type="text" id="wordInput" class="text-input" maxlength="8" placeholder="여기에 입력해주세요" autofocus>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 임시 데이터베이스
+        let dbTextList = ["은혜의 빛", "사랑", "소망", "믿음"]; 
+        
+        const wordInput = document.getElementById('wordInput');
+        const displayText = document.getElementById('displayText');
+        const displayArea = document.getElementById('displayArea');
+        const cursor = document.getElementById('cursor');
+
+        // 타이머들을 제어하기 위한 변수들
+        let typingTimeout;
+        let waitTimeout;
+        let fadeTimeout;
+
+        // 마우스 없이 항상 입력창에 포커스 고정 (포커스를 잃으면 즉시 다시 포커스)
+        wordInput.addEventListener('blur', () => {
+            wordInput.focus();
+        });
+
+        // 진행 중인 모든 애니메이션(타이머)을 멈추는 함수
+        function clearAllTimeouts() {
+            clearTimeout(typingTimeout);
+            clearTimeout(waitTimeout);
+            clearTimeout(fadeTimeout);
+        }
+
+        // 엔터키 입력 시 등록 및 송출 처리
+        wordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const newWord = wordInput.value.trim();
+                if (newWord.length > 0) {
+                    dbTextList.push(newWord); 
+                    wordInput.value = ''; 
+                    
+                    // 1. 진행 중이던 애니메이션 즉시 중지
+                    clearAllTimeouts();
+                    
+                    // 2. 방금 입력한 새 단어를 바로 화면에 송출
+                    startTypingEffect(newWord);
+                }
+            }
+        });
+
+        // 랜덤 페이드 + 타이핑 효과 로직
+        function startTypingEffect(specificWord = null) {
+            let targetWord;
+            
+            if (specificWord) {
+                targetWord = specificWord;
+            } else {
+                const randomIndex = Math.floor(Math.random() * dbTextList.length);
+                targetWord = dbTextList[randomIndex];
+            }
+            
+            displayText.textContent = '';
+            displayArea.style.opacity = 1; 
+            cursor.style.display = 'inline';
+
+            let charIndex = 0;
+
+            function typeWriter() {
+                if (charIndex < targetWord.length) {
+                    displayText.textContent += targetWord.charAt(charIndex);
+                    charIndex++;
+                    typingTimeout = setTimeout(typeWriter, 200); 
+                } else {
+                    cursor.style.display = 'none'; 
+                    waitTimeout = setTimeout(fadeOutAndNext, 3000); // 3초 대기
+                }
+            }
+            
+            typeWriter();
+        }
+
+        function fadeOutAndNext() {
+            displayArea.style.opacity = 0; 
+            fadeTimeout = setTimeout(() => {
+                startTypingEffect();
+            }, 500); 
+        }
+
+        // 첫 시작
+        window.onload = () => {
+            startTypingEffect();
+            wordInput.focus(); // 페이지 로드 시 확실하게 포커스 지정
+        };
+    </script>
+
+</body>
+</html>
